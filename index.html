@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Valentine Surprise — Pop & Proposal</title>
+<style>
+  :root{
+    --accent:#ff2b6a;
+    --deep-red:#b30f2b;
+    --cream:#fff6f1;
+    --rose:#ff8098;
+    --bgA:#ffeef6;
+    --bgB:#fff2f8;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{
+    background: linear-gradient(135deg,#ffdbe8 0%, #ffeef6 40%, #fff7fa 100%);
+    display:flex;align-items:center;justify-content:center;
+    height:100vh;overflow:hidden;
+  }
+  #app{
+    position:relative;
+    width:100%;
+    height:100vh;
+    max-width:1100px;
+    margin:0 auto;
+    overflow:hidden;
+  }
+
+  /* Intro overlay */
+  #intro{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:80;
+    background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
+    pointer-events:auto;
+  }
+  .intro-card{
+    background:linear-gradient(180deg,#fff,#fff8f9);
+    padding:20px 26px;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.12);text-align:center;
+  }
+  .intro-card h1{margin:0 0 6px;font-size:20px;color:var(--deep-red)}
+  .intro-card p{margin:0 0 12px;color:#6b2b45}
+  .start-btn{background:linear-gradient(90deg,var(--accent),#e0336c);border:0;color:white;padding:10px 16px;border-radius:999px;font-weight:700;cursor:pointer;box-shadow:0 10px 28px rgba(224,50,100,0.2)}
+  .start-btn:active{transform:translateY(1px)}
+
+  /* Stage */
+  #stage{position:absolute;inset:0;z-index:1;pointer-events:auto}
+
+
+  /* Balloons container */
+  #balloonStage{position:absolute;inset:0;z-index:2;pointer-events:auto}
+
+  /* Balloon base */
+  .balloon{
+    position:absolute; display:flex; align-items:center; justify-content:center;
+    transform-origin:center bottom; cursor:pointer; user-select:none;
+    transition: transform .18s cubic-bezier(.2,.9,.2,1);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    touch-action: manipulation;
+    will-change: transform, opacity;
+  }
+  .balloon .string{
+    position:absolute; bottom:-44px; left:50%; transform:translateX(-50%);
+    width:2px; height:44px; background:rgba(255,255,255,0.9);
+    border-radius:2px;
+    box-shadow:0 4px 6px rgba(0,0,0,0.12);
+  }
+
+  /* Circle glossy style */
+  .balloon.circle{
+    border-radius:50%;
+    background: linear-gradient(180deg,rgba(255,255,255,0.85), rgba(255,255,255,0.02)), radial-gradient(circle at 30% 25%, rgba(255,255,255,0.75), rgba(255,255,255,0) 35%), linear-gradient(180deg,#ff9fbf,#ff2b6a);
+  }
+  /* Heart balloon using pseudo elements */
+  .balloon.heart{
+    width:84px; height:84px; background:transparent; border-radius:0; position:absolute;
+  }
+  .balloon.heart .heart-shape{
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    transform: translateY(-8px) scale(1.05);
+  }
+  .heart-shape:before, .heart-shape:after{
+    content:""; position:absolute; left:50%; top:0; width:50%; height:80%;
+    background: linear-gradient(180deg,#ff7fa0,#b31b3a);
+    border-radius:50% 50% 40% 40%;
+    transform-origin:center; box-shadow:0 10px 25px rgba(0,0,0,0.18);
+  }
+  .heart-shape:before{ transform: translateX(-50%) rotate(-45deg); left:25%;}
+  .heart-shape:after{ transform: translateX(-50%) rotate(45deg); left:50%;}
+
+  /* Pop animation */
+  .pop {
+    animation: popAnim .24s ease forwards;
+  }
+  @keyframes popAnim {
+    0%{ transform: scale(1); opacity:1 }
+    100%{ transform: scale(0); opacity:0 }
+  }
+
+  /* Petals rising on pop */
+  .petal{ position:absolute; pointer-events:none; font-size:18px; transform-origin:center; animation:petalRise 1.2s ease forwards; opacity:0; z-index:70 }
+  @keyframes petalRise{ 0%{opacity:1; transform: translateY(0) rotate(0) scale(.9)} 100%{opacity:0; transform: translateY(-140px) rotate(360deg) scale(1.05)} }
+
+  /* Envelope area (hidden until all popped) */
+  #envelopeWrap{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:30; pointer-events:none; opacity:0; transition: opacity .4s ease }
+  #envelopeWrap.active{ pointer-events:auto; opacity:1 }
+
+  .envelope{
+    width:360px; max-width:86%; height:240px; position:relative; transform-origin:center center;
+  }
+  .env-body{
+    position:absolute; inset:0; border-radius:14px; background: linear-gradient(180deg,var(--cream), #fff1ee);
+    border:2px solid #f3d7d9; box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+    overflow:hidden;
+  }
+  /* flap */
+  .env-flap{
+    position:absolute; left:0; right:0; height:60%; top:0;
+    background: linear-gradient(180deg,#ffdbe6,#ffbfcf); clip-path: polygon(50% 0, 100% 60%, 0 60%);
+    transform-origin: top center; transition: transform .7s cubic-bezier(.18,.9,.2,1), box-shadow .3s;
+    box-shadow:0 4px 20px rgba(179,15,43,0.08);
+  }
+  /* glow when opening */
+  .env-glow{ position:absolute; inset:0; background: radial-gradient(circle at 50% 30%, rgba(255,120,160,0.18), rgba(255,120,160,0) 35%); opacity:0; pointer-events:none; transition: opacity .45s ease; }
+  .envelope.open .env-glow{ opacity:1; }
+
+  /* stamp */
+  .stamp{ position:absolute; right:16px; top:16px; width:64px; height:64px; border-radius:50%;
+    background: linear-gradient(180deg,#e63b59,#c31b3b); color:white; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:22px; cursor:pointer; box-shadow:0 8px 24px rgba(0,0,0,0.18); transition: transform .18s ease, opacity .25s }
+  .stamp.hide{ transform: translateY(-10px) scale(.6); opacity:0 }
+
+  /* Envelope opened flap rotates upward */
+  .envelope.open .env-flap{ transform: rotateX(180deg) translateY(-6px); box-shadow:none; }
+
+  /* envelope disappears */
+  .envelope.vanish{ opacity:0; transform: translateY(-8px) scale(.98); transition: all .45s ease; pointer-events:none }
+
+  /* letter folded - triple fold simulation */
+  .letter{
+    position: absolute; width:320px; max-width:84%; height:200px; background:linear-gradient(180deg,var(--cream), #fff7f5);
+    border-radius:10px; box-shadow:0 18px 48px rgba(0,0,0,0.16); transform-origin: top center; pointer-events:auto;
+    z-index:40; overflow:visible;
+  }
+  /* rose border */
+  .letter .border{
+    position:absolute; inset:12px; border-radius:8px; pointer-events:none;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02)),
+      url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="40"><text x="0" y="14" font-size="12" fill="%23d75b6a">❤</text></svg>');
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02);
+  }
+
+  /* letter folds panels: we simulate 3 parts — top-middle-bottom */
+  .panel{ position:absolute; left:0; right:0; height:33.333%; overflow:hidden; display:flex; align-items:center; justify-content:center }
+  .panel.top{ top:0; border-top-left-radius:10px; border-top-right-radius:10px }
+  .panel.mid{ top:33.333% }
+  .panel.bot{ bottom:0; border-bottom-left-radius:10px; border-bottom-right-radius:10px }
+
+  /* hidden content */
+  .letter .content{ padding:18px; font-size:15px; color:#3b2b2b; line-height:1.5; display:none; text-align:left }
+
+  /* show content */
+  .letter.opened .content{ display:block }
+
+  /* small heart on top-right */
+  .letter .heart-small{ position:absolute; right:14px; top:10px; width:38px; height:38px; border-radius:50%; background:linear-gradient(180deg,#ff6b84,#d83a54);
+    display:flex; align-items:center; justify-content:center; color:white; font-weight:800; cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,0.18); z-index:60 }
+
+  /* heart center big */
+  .big-heart{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(0); width:160px; height:160px; border-radius:50%;
+    background: radial-gradient(circle at 35% 25%, #ff6b84, var(--deep-red)); display:flex; align-items:center; justify-content:center;
+    color:white; font-size:54px; z-index:120; box-shadow:0 18px 68px rgba(179,15,43,0.28); pointer-events:auto;
+    transition: transform .35s cubic-bezier(.2,.9,.2,1), filter .18s;
+  }
+  .big-heart.show{ transform:translate(-50%,-50%) scale(1); }
+
+  /* shaking levels: we implement via classes */
+  .shake-slow{ animation: shake1 .8s infinite ease-in-out; }
+  .shake-med{ animation: shake2 .5s infinite ease-in-out; }
+  .shake-fast{ animation: shake3 .32s infinite ease-in-out; }
+  .shake-intense{ animation: shake4 .2s infinite ease-in-out; }
+
+  @keyframes shake1 { 0%{transform:translate(-50%,-50%) rotate(-2deg)} 50%{transform:translate(-50%,-50%) rotate(2deg)} 100%{transform:translate(-50%,-50%) rotate(-2deg)} }
+  @keyframes shake2 { 0%{transform:translate(-50%,-50%) rotate(-4deg)} 50%{transform:translate(-50%,-50%) rotate(4deg)} 100%{transform:translate(-50%,-50%) rotate(-4deg)} }
+  @keyframes shake3 { 0%{transform:translate(-50%,-50%) rotate(-8deg)} 50%{transform:translate(-50%,-50%) rotate(8deg)} 100%{transform:translate(-50%,-50%) rotate(-8deg)} }
+  @keyframes shake4 { 0%{transform:translate(-50%,-50%) rotate(-16deg)} 50%{transform:translate(-50%,-50%) rotate(16deg)} 100%{transform:translate(-50%,-50%) rotate(-16deg)} }
+
+  /* bloom animation */
+  .bloom { animation: bloomAnim .6s ease forwards; }
+  @keyframes bloomAnim { 0%{ transform:translate(-50%,-50%) scale(1)} 60%{ transform:translate(-50%,-50%) scale(1.9)} 100%{ transform:translate(-50%,-50%) scale(0)} }
+
+  /* proposal box */
+  .proposal{
+    position:fixed; left:50%; top:60%; transform:translate(-50%,-50%) scale(.98); background:linear-gradient(180deg,#fff0f2,#fffafc);
+    padding:18px 20px;border-radius:14px; box-shadow:0 18px 54px rgba(0,0,0,0.2); z-index:220; display:none;
+  }
+  .proposal.show{ display:block }
+  .proposal h2{ margin:0 0 12px; color:#2b0f1a }
+  .proposal .btns{ display:flex; gap:12px; justify-content:center }
+  .proposal button{ padding:10px 14px; border-radius:999px; border:0; cursor:pointer; font-weight:700 }
+  .btn-yes{ background:linear-gradient(90deg,#ff9fbf,#ff2b6a); color:white }
+  .btn-no{ background:#fff; border:2px solid #ffd6e0 }
+
+  /* final flow */
+  #finalFlow{ position:fixed; left:50%; top:58%; transform:translate(-50%,-50%); z-index:240; display:none; text-align:center }
+  #finalFlow.show{ display:block }
+  #finalFlow .finalText{ font-weight:800; color:#8b203a }
+
+  /* petals & heart rain */
+  .falling{ position:fixed; pointer-events:none; z-index:200; left:0; top:0; width:100%; height:100%; overflow:visible }
+
+  /* kiss emoji */
+  .kiss{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-30%) scale(0); font-size:64px; z-index:260; transition: transform .45s cubic-bezier(.2,.9,.2,1);
+    filter: drop-shadow(0 8px 22px rgba(0,0,0,0.18));
+  }
+  .kiss.show{ transform:translate(-50%,-50%) scale(1) }
+
+  /* small mobile adjustments */
+  @media(max-width:600px){
+    .letter{ width:86%; height:180px }
+    .envelope{ height:180px; width:86% }
+    .big-heart{ width:130px; height:130px; font-size:40px }
+    .stamp{ width:52px; height:52px; right:10px; top:10px }
+    .kiss{ font-size:48px }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Intro -->
+  <div id="intro">
+    <div class="intro-card">
+      <h1>Valentine Surprise ❤️</h1>
+      <p>Tap <strong>Start</strong>, pop all 10 glossy balloons to find a special letter. Follow the steps to finish the surprise.</p>
+      <button class="start-btn" id="startBtn">Start the Surprise</button>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div id="stage">
+    <div id="balloonStage"></div>
+
+    <!-- Envelope (hidden until all popped) -->
+    <div id="envelopeWrap" aria-hidden="true">
+      <div class="envelope" id="envelope">
+        <div class="env-body"></div>
+        <div class="env-glow"></div>
+        <div class="env-flap"></div>
+        <div class="stamp" id="stamp">❤</div>
+      </div>
+    </div>
+
+    <!-- Folded letter (initially hidden until envelope opens) -->
+    <!-- we'll place letter centered -->
+    <div id="letterArea" style="position:absolute; inset:0; display:flex;align-items:center;justify-content:center; pointer-events:none; z-index:40">
+      <div class="letter" id="letter" style="display:none; pointer-events:auto">
+        <div class="border"></div>
+        <!-- three panels simulating triple fold -->
+        <div class="panel top"></div>
+        <div class="panel mid"></div>
+        <div class="panel bot"></div>
+
+        <div class="content" id="letterContent">
+          <div class="heart-small" id="letterHeart">❤</div>
+          <div style="padding:8px 8px 6px 8px;">
+            <div style="font-size:14px;color:#b43a53;text-align:right;font-weight:700">With all my love,</div>
+            <div style="margin-top:10px;font-size:15px;color:#3b2b2b;text-align:left">
+              <p style="margin:0 0 8px"><em>"Tere bina kuch bhi adhura sa hai,</em><br><em>Teray honton pe jab muskurahat aa jaye,</em><br><em>Meri duniya poori ho jati hai."</em></p>
+              <p style="margin-top:8px">My dearest <strong>Choti G</strong>,</p>
+              <p style="margin-top:8px">Every day with you is poetry — quiet, golden and full of meaning. You are my calm, my smile and my forever. Will you continue to walk beside me, laugh with me and make every ordinary moment sacred? I love you more than words can hold.</p>
+              <p style="margin-top:12px;font-weight:700">— Your always, <span style="color:var(--deep-red)">Choti G</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Big Heart -->
+    <div class="big-heart" id="bigHeart" aria-hidden="true">❤</div>
+
+    <!-- Proposal -->
+    <div class="proposal" id="proposal">
+      <h2 id="proposalText">Will you marry me Choti G?</h2>
+      <div class="btns">
+        <button class="btn-yes" id="yesBtn">Yes</button>
+        <button class="btn-no" id="noBtn">No</button>
+      </div>
+    </div>
+
+    <!-- Final flow -->
+    <div id="finalFlow">
+      <div class="finalText" id="finalText"></div>
+      <div id="finalButtons"></div>
+    </div>
+
+    <!-- Falling layer for petals/hearts -->
+    <div id="falling" class="falling" aria-hidden="true"></div>
+
+    <!-- Kiss -->
+    <div class="kiss" id="kiss">💋</div>
+
+    <!-- Confetti canvas (optional) -->
+    <canvas id="confetti" style="position:fixed;left:0;top:0;z-index:260;pointer-events:none"></canvas>
+  </div>
+</div>
+
+<script>
+  /* ====== audio setup ====== */
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = AudioCtx ? new AudioCtx() : null;
+  function playPop(){
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='triangle'; o.frequency.setValueAtTime(600, audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime+0.12);
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.28, audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.2);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.18);
+  }
+  function playFlourish(){
+    if(!audioCtx) return;
+    const o1 = audioCtx.createOscillator(), o2 = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o1.type='sine'; o2.type='sine';
+    o1.frequency.setValueAtTime(440, audioCtx.currentTime); o2.frequency.setValueAtTime(660, audioCtx.currentTime);
+    o1.frequency.exponentialRampToValueAtTime(620, audioCtx.currentTime+0.5);
+    o2.frequency.exponentialRampToValueAtTime(780, audioCtx.currentTime+0.5);
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+1.1);
+    o1.connect(g); o2.connect(g); g.connect(audioCtx.destination);
+    o1.start(); o2.start(); o1.stop(audioCtx.currentTime+0.9); o2.stop(audioCtx.currentTime+0.9);
+  }
+  function playTap(){
+    if(!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='square'; o.frequency.setValueAtTime(340, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.14, audioCtx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.18);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+0.16);
+  }
+
+  /* ====== elements ====== */
+  const intro = document.getElementById('intro');
+  const startBtn = document.getElementById('startBtn');
+  const balloonStage = document.getElementById('balloonStage');
+  const envelopeWrap = document.getElementById('envelopeWrap');
+  const envelope = document.getElementById('envelope');
+  const stamp = document.getElementById('stamp');
+  const letter = document.getElementById('letter');
+  const letterContent = document.getElementById('letterContent');
+  const letterHeart = document.getElementById('letterHeart');
+  const bigHeart = document.getElementById('bigHeart');
+  const proposal = document.getElementById('proposal');
+  const yesBtn = document.getElementById('yesBtn');
+  const noBtn = document.getElementById('noBtn');
+  const finalFlow = document.getElementById('finalFlow');
+  const finalText = document.getElementById('finalText');
+  const finalButtons = document.getElementById('finalButtons');
+  const falling = document.getElementById('falling');
+  const kiss = document.getElementById('kiss');
+  const confettiCanvas = document.getElementById('confetti');
+
+  /* ====== state ====== */
+  const TOTAL_BALLOONS = 10;
+  let poppedCount = 0;
+  let heartClicks = 0;
+
+  /* ====== helpers ====== */
+  function rnd(min,max){ return Math.floor(min + Math.random()*(max-min+1)); }
+
+  function placeBalloons(){
+    balloonStage.innerHTML = '';
+    const vw = Math.min(window.innerWidth,1100);
+    const vh = window.innerHeight;
+    for(let i=0;i<TOTAL_BALLOONS;i++){
+      const isHeart = Math.random() < 0.45; // mix
+      const el = document.createElement('div');
+      el.className = 'balloon ' + (isHeart ? 'heart' : 'circle');
+      // size
+      const scale = 0.85 + Math.random()*0.5;
+      const w = isHeart ? (84*scale) : (90*scale);
+      const h = isHeart ? (84*scale) : (120*scale);
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+      // random pos within bounds (safe margins)
+      const margin = 40;
+      const left = margin + Math.random() * (vw - margin*2 - w);
+      const top = margin + Math.random() * (vh - margin*2 - h - 80); // leave some room for controls
+      el.style.left = left + 'px'; el.style.top = top + 'px';
+      // add string for circles and hearts
+      const s = document.createElement('div'); s.className = 'string';
+      el.appendChild(s);
+
+      if(isHeart){
+        // heart structure
+        const hs = document.createElement('div'); hs.className='heart-shape'; el.appendChild(hs);
+        // style tweak
+        el.style.transform = `translateY(0) rotate(${rnd(-6,6)}deg)`;
+      } else {
+        el.classList.add('circle');
+      }
+
+      // hover/tap feedback
+      el.addEventListener('pointerdown', (ev)=>{
+        ev.stopPropagation();
+        if(!audioCtx) try{ audioCtx && audioCtx.resume(); }catch(e){}
+        popBalloon(el);
+      }, {passive:true});
+
+      balloonStage.appendChild(el);
+    }
+  }
+
+  function spawnPetals(x,y,count=10){
+    for(let i=0;i<count;i++){
+      const p = document.createElement('div'); p.className='petal';
+      p.textContent = (Math.random()<0.7 ? '🌹' : '💗');
+      p.style.left = (x + (Math.random()*60-30)) + 'px';
+      p.style.top = (y + (Math.random()*40-20)) + 'px';
+      p.style.fontSize = (12 + Math.random()*18) + 'px';
+      p.style.animationDuration = (0.9 + Math.random()*0.9) + 's';
+      document.body.appendChild(p);
+      setTimeout(()=> p.remove(), 1400);
+    }
+  }
+
+  function popBalloon(el){
+    if(el.dataset.popped) return;
+    el.dataset.popped = '1';
+    el.classList.add('pop');
+    // compute center
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width/2, cy = r.top + r.height/2;
+    spawnPetals(cx, cy, 9);
+    try{ playPop(); }catch(e){}
+    poppedCount++;
+    setTimeout(()=>{ el.remove(); checkAllPopped(); }, 280);
+  }
+
+  function checkAllPopped(){
+    if(poppedCount >= TOTAL_BALLOONS){
+      // show envelope
+      setTimeout(()=>{
+        envelopeWrap.classList.add('active');
+        envelope.style.transform = 'scale(.98)';
+        setTimeout(()=> envelope.style.transform='scale(1)',30);
+        try{ playFlourish(); }catch(e){}
+      }, 450);
+    }
+  }
+
+  /* envelope interactions */
+  stamp.addEventListener('click', (e)=>{
+    if(!envelopeWrap.classList.contains('active')) return;
+    stamp.classList.add('hide'); // animate stamp disappearing
+    try{ playTap(); }catch(e){}
+  });
+
+  envelope.addEventListener('click', (e)=>{
+    // only proceed if stamp already removed (stamp disappearing done)
+    if(!envelopeWrap.classList.contains('active')) return;
+    if(!stamp.classList.contains('hide')) return; // require stamp click first
+    // open envelope
+    envelope.classList.add('open');
+    // magical glow visible by CSS
+    try{ playFlourish(); }catch(e){}
+    // vanish envelope after a short delay and show letter
+    setTimeout(()=>{
+      envelope.classList.add('vanish');
+      // hide envelopeWrap pointer events
+      envelopeWrap.classList.remove('active');
+      // show folded letter with triple fold suspense
+      showFoldedLetter();
+    }, 760);
+  });
+
+  /* Triple-fold unfold letter */
+  function showFoldedLetter(){
+    letter.style.display = 'block';
+    letter.style.pointerEvents = 'auto';
+    // initially show minimal (folded) panels - we'll animate in 3 steps
+    const top = letter.querySelector('.panel.top');
+    const mid = letter.querySelector('.panel.mid');
+    const bot = letter.querySelector('.panel.bot');
+    // set initial transforms to look folded
+    top.style.transform = 'translateY(-10px) rotateX(8deg)';
+    mid.style.transform = 'translateY(0) rotateX(0deg)';
+    bot.style.transform = 'translateY(10px) rotateX(-8deg)';
+
+    // user click to start unfolding
+    letter.addEventListener('click', unfoldSequence, { once: true, passive:true });
+  }
+
+  function unfoldSequence(){
+    // step 1: lift top flap
+    const top = letter.querySelector('.panel.top');
+    const mid = letter.querySelector('.panel.mid');
+    const bot = letter.querySelector('.panel.bot');
+    // suspense: sequential transforms with timeout
+    top.animate([{transform:'translateY(-10px) rotateX(8deg)'},{transform:'translateY(-50px) rotateX(120deg)'}], {duration:650, easing:'cubic-bezier(.18,.9,.2,1)', fill:'forwards'});
+    setTimeout(()=>{
+      // step 2: middle opens partly
+      mid.animate([{transform:'translateY(0) rotateX(0deg)'},{transform:'translateY(-10px) rotateX(20deg)'}], {duration:520, easing:'cubic-bezier(.18,.9,.2,1)', fill:'forwards'});
+    }, 520);
+    setTimeout(()=>{
+      // step 3: bottom slides down
+      bot.animate([{transform:'translateY(10px) rotateX(-8deg)'},{transform:'translateY(20px) rotateX(-2deg)'}], {duration:520, easing:'cubic-bezier(.18,.9,.2,1)', fill:'forwards'});
+    }, 980);
+    setTimeout(()=>{
+      // final: mark letter opened and show content
+      letter.classList.add('opened');
+      letterContent.classList.add('show');
+      try{ playFlourish(); }catch(e){}
+      // allow small heart click
+      const hs = document.getElementById('letterHeart');
+      hs.style.pointerEvents = 'auto';
+    }, 1600);
+  }
+
+  /* Clicking heart on letter: removes letter and shows big heart */
+  letterHeart.addEventListener('click', (e)=>{
+    // animate letter fade
+    letter.animate([{opacity:1, transform:'scale(1)'},{opacity:0, transform:'scale(.96)'}], {duration:420, fill:'forwards'});
+    setTimeout(()=> letter.style.display='none',420);
+    // spawn big deep red heart in center
+    bigHeart.classList.add('show');
+    bigHeart.dataset.shakes = '0';
+    bigHeart.classList.add('shake-slow');
+    bigHeart.style.pointerEvents = 'auto';
+    try{ playTap(); }catch(e){}
+  });
+
+  /* Heart click progression */
+  bigHeart.addEventListener('click', (e)=>{
+    let n = Number(bigHeart.dataset.shakes || 0) + 1;
+    bigHeart.dataset.shakes = String(n);
+    // increase shake class
+    bigHeart.classList.remove('shake-slow','shake-med','shake-fast','shake-intense');
+    if(n === 1) bigHeart.classList.add('shake-slow');
+    else if(n === 2) bigHeart.classList.add('shake-med');
+    else if(n === 3) bigHeart.classList.add('shake-fast');
+    else if(n === 4) bigHeart.classList.add('shake-intense');
+    else if(n >= 5){
+      // bloom
+      bigHeart.classList.add('bloom');
+      try{ playFlourish(); }catch(e){}
+      // petals & hearts rain
+      setTimeout(()=> {
+        bigHeart.classList.remove('show','bloom');
+        showProposalAfterBloom();
+      }, 520);
+    }
+    try{ playPop(); }catch(e){}
+  });
+
+  function showProposalAfterBloom(){
+    // start rose/hearts rain
+    startRain(6000);
+    // show proposal box after tiny delay
+    setTimeout(()=> {
+      proposal.classList.add('show');
+    }, 600);
+  }
+
+  /* proposal button behavior */
+  noBtn.addEventListener('click', ()=>{
+    // No -> change to Yes instantly
+    noBtn.textContent = 'Yes';
+    noBtn.classList.remove('btn-no'); noBtn.classList.add('btn-yes');
+    // now clicking it acts like Yes
+    noBtn.addEventListener('click', ()=> { proceedYes(); }, { once: true, passive:true });
+  }, { once: true });
+
+  yesBtn.addEventListener('click', ()=> proceedYes());
+
+  function proceedYes(){
+    proposal.classList.remove('show');
+    finalFlow.classList.add('show');
+    finalText.textContent = 'hay allah g';
+    finalButtons.innerHTML = `<button id="giveHeart" style="padding:10px 14px;border-radius:999px;border:0;background:linear-gradient(90deg,#ffd1e0,#ff6a98);color:white;font-weight:800;cursor:pointer">give him a heart</button>`;
+    document.getElementById('giveHeart').addEventListener('click', ()=>{
+      finalText.textContent = 'ACHA G';
+      finalButtons.innerHTML = `<button id="hanG" style="padding:10px 14px;border-radius:999px;border:0;background:linear-gradient(90deg,#ff9ecb,#ff2b6a);color:white;font-weight:800;cursor:pointer">Han g</button>`;
+      document.getElementById('hanG').addEventListener('click', ()=>{
+        // final kiss & text
+        finalText.innerHTML = '💋';
+        finalButtons.innerHTML = `<div style="margin-top:8px;font-weight:700">ummmmmmmmaah</div>`;
+        // big petal rain & confetti
+        startRain(7000);
+        confettiBurst(180);
+        // show kiss animation
+        setTimeout(()=> { kiss.classList.add('show'); }, 400);
+      }, { once:true });
+    }, { once:true });
+  }
+
+  /* ====== falling petals/hearts (rain) ====== */
+  function startRain(duration=5000){
+    const limit = Math.floor((window.innerWidth + window.innerHeight)/10);
+    const frag = document.createDocumentFragment();
+    const items = [];
+    const count = Math.min(120, limit);
+    for(let i=0;i<count;i++){
+      const d = document.createElement('div');
+      d.style.position='absolute';
+      d.style.left = Math.random()*100 + '%';
+      d.style.top = -20 - Math.random()*500 + 'px';
+      d.style.pointerEvents='none';
+      d.style.zIndex = 210;
+      d.style.fontSize = (12 + Math.random()*26) + 'px';
+      d.style.opacity = 0.9;
+      d.innerText = Math.random()<0.6 ? '🌹' : '💗';
+      falling.appendChild(d);
+      items.push({el:d, speed: 1 + Math.random()*3, rot: Math.random()*360});
+    }
+    falling.style.display='block';
+    const start = Date.now();
+    let raf;
+    function loop(){
+      const t = Date.now() - start;
+      for(let it of items){
+        const y = parseFloat(it.el.style.top);
+        it.el.style.top = (y + it.speed + Math.sin(t/400 + Math.random())*0.6) + 'px';
+        it.el.style.transform = `rotate(${(it.rot + t*0.02)%360}deg)`;
+      }
+      raf = requestAnimationFrame(loop);
+    }
+    loop();
+    setTimeout(()=>{
+      cancelAnimationFrame(raf);
+      // fade out and remove
+      for(let it of items) it.el.remove();
+      falling.style.display='none';
+    }, duration);
+  }
+
+  /* simple confetti on canvas */
+  function confettiBurst(count=80){
+    const c = confettiCanvas; const ctx = c.getContext('2d');
+    c.width = window.innerWidth; c.height = window.innerHeight;
+    const pieces = [];
+    for(let i=0;i<count;i++){
+      pieces.push({
+        x: Math.random()*c.width,
+        y: -Math.random()*c.height,
+        w: 6 + Math.random()*12,
+        h: 6 + Math.random()*12,
+        color: `hsl(${Math.random()*40 + 330}, 80%, 60%)`,
+        dy: 2 + Math.random()*4
+      });
+    }
+    confettiCanvas.style.display='block';
+    let raf;
+    function draw(){
+      ctx.clearRect(0,0,c.width,c.height);
+      for(let p of pieces){
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x,p.y,p.w,p.h);
+        p.y += p.dy;
+        p.x += Math.sin(p.y/30) * 1.2;
+        if(p.y > c.height) p.y = -10;
+      }
+      raf = requestAnimationFrame(draw);
+    }
+    draw();
+    setTimeout(()=> { cancelAnimationFrame(raf); ctx.clearRect(0,0,c.width,c.height); confettiCanvas.style.display='none'; }, 3200);
+  }
+
+  /* ====== start flow ====== */
+  startBtn.addEventListener('click', (e)=>{
+    // resume audio on user gesture
+    try{ audioCtx && audioCtx.resume(); }catch(e){}
+    intro.style.display='none';
+    placeBalloons();
+    confettiBurst(20);
+  });
+
+  /* accessibility: allow Enter to start */
+  startBtn.addEventListener('keyup', (ev)=> { if(ev.key === 'Enter') startBtn.click(); });
+
+  /* safety: resize canvas */
+  window.addEventListener('resize', ()=> { confettiCanvas.width = window.innerWidth; confettiCanvas.height = window.innerHeight; });
+
+  /* extra: clicking outside doesn't break */
+  document.addEventListener('visibilitychange', ()=> { /* noop */ });
+</script>
+</body>
+</html>
